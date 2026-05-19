@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "9-1P"
+rootProject.name = "7-1P"
 include(":app")
  
