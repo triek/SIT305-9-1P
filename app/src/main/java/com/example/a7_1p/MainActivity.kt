@@ -1,5 +1,6 @@
 package com.example.a7_1p
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,6 +36,9 @@ class MainActivity : ComponentActivity() {
                             ListingScreen(
                                 onCreatePostClick = {
                                     navController.navigate(AppScreen.CreatePost.route)
+                                },
+                                onShowOnMapClick = {
+                                    startActivity(Intent(this@MainActivity, MapsActivity::class.java))
                                 },
                                 onItemClick = { itemId ->
                                     navController.navigate(AppScreen.Detail.createRoute(itemId))

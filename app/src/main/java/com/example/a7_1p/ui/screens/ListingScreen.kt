@@ -42,6 +42,7 @@ import com.example.a7_1p.data.LostFoundItem
 @Composable
 fun ListingScreen(
     onCreatePostClick: () -> Unit,
+    onShowOnMapClick: () -> Unit,
     onItemClick: (Long) -> Unit
 ) {
     val context = LocalContext.current
@@ -177,6 +178,10 @@ fun ListingScreen(
         }
         Button(onClick = onCreatePostClick) {
             Text("Create a post")
+        }
+
+        Button(onClick = onShowOnMapClick) {
+            Text("SHOW ON MAP")
         }
 
         if (controlsExpanded && BuildConfig.DEBUG) {
