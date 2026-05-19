@@ -8,6 +8,8 @@ data class LostFoundItem(
     val description: String,
     val createdAtMillis: Long,
     val location: String,
+    val latitude: Double,
+    val longitude: Double,
     val category: String,
     val imageUri: String
 )

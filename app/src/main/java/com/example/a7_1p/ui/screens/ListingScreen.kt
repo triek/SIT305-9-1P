@@ -63,6 +63,8 @@ fun ListingScreen(
         description = "Lost near library with student card inside.",
         createdAtMillis = System.currentTimeMillis(),
         location = "Campus Library",
+        latitude = -37.8401,
+        longitude = 144.9467,
         category = "Wallets",
         imageUri = sampleImageUri
     )
@@ -74,6 +76,8 @@ fun ListingScreen(
         description = "Found set of two keys at cafeteria counter.",
         createdAtMillis = System.currentTimeMillis() - 60_000,
         location = "Campus Cafeteria",
+        latitude = -37.8410,
+        longitude = 144.9451,
         category = "Keys",
         imageUri = "placeholder-image-path"
     )
@@ -86,6 +90,8 @@ fun ListingScreen(
             description = "Contains notebooks and a charger.",
             createdAtMillis = System.currentTimeMillis() - 2 * 60_000,
             location = "Engineering Building",
+            latitude = -37.8425,
+            longitude = 144.9443,
             category = "Other",
             imageUri = sampleImageUri
         ),
@@ -96,6 +102,8 @@ fun ListingScreen(
             description = "Found in lecture hall row C.",
             createdAtMillis = System.currentTimeMillis() - 3 * 60_000,
             location = "Lecture Hall 2",
+            latitude = -37.8432,
+            longitude = 144.9472,
             category = "Electronics",
             imageUri = ""
         ),
@@ -106,6 +114,8 @@ fun ListingScreen(
             description = "Small brown dog with red collar.",
             createdAtMillis = System.currentTimeMillis() - 4 * 60_000,
             location = "North Car Park",
+            latitude = -37.8388,
+            longitude = 144.9480,
             category = "Pets",
             imageUri = sampleImageUri
         )

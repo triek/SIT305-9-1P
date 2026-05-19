@@ -64,6 +64,8 @@ fun ItemDetailScreen(itemId: Long, onItemRemoved: () -> Unit) {
         Text("Phone: ${currentItem.phone}")
         Text("Posted on: ${DateTimeFormatterUtil.formatForDetail(currentItem.createdAtMillis)}")
         Text("Location: ${currentItem.location}")
+        Text("Latitude: ${currentItem.latitude}")
+        Text("Longitude: ${currentItem.longitude}")
         Text("Category: ${currentItem.category}")
 
         Button(onClick = {

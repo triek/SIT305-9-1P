@@ -25,6 +25,8 @@ class LostFoundDatabaseHelper(context: Context) :
             put(COLUMN_DESCRIPTION, item.description)
             put(COLUMN_CREATED_AT, item.createdAtMillis)
             put(COLUMN_LOCATION, item.location)
+            put(COLUMN_LATITUDE, item.latitude)
+            put(COLUMN_LONGITUDE, item.longitude)
             put(COLUMN_CATEGORY, item.category)
             put(COLUMN_IMAGE_URI, item.imageUri)
         }
@@ -59,6 +61,8 @@ class LostFoundDatabaseHelper(context: Context) :
             val descriptionIndex = cursor.getColumnIndexOrThrow(COLUMN_DESCRIPTION)
             val createdAtIndex = cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT)
             val locationIndex = cursor.getColumnIndexOrThrow(COLUMN_LOCATION)
+            val latitudeIndex = cursor.getColumnIndexOrThrow(COLUMN_LATITUDE)
+            val longitudeIndex = cursor.getColumnIndexOrThrow(COLUMN_LONGITUDE)
             val categoryIndex = cursor.getColumnIndexOrThrow(COLUMN_CATEGORY)
             val imageUriIndex = cursor.getColumnIndexOrThrow(COLUMN_IMAGE_URI)
 
@@ -72,6 +76,8 @@ class LostFoundDatabaseHelper(context: Context) :
                         description = cursor.getString(descriptionIndex),
                         createdAtMillis = cursor.getLong(createdAtIndex),
                         location = cursor.getString(locationIndex),
+                        latitude = cursor.getDouble(latitudeIndex),
+                        longitude = cursor.getDouble(longitudeIndex),
                         category = cursor.getString(categoryIndex),
                         imageUri = cursor.getString(imageUriIndex)
                     )
@@ -105,6 +111,8 @@ class LostFoundDatabaseHelper(context: Context) :
                 description = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DESCRIPTION)),
                 createdAtMillis = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT)),
                 location = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_LOCATION)),
+                latitude = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_LATITUDE)),
+                longitude = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_LONGITUDE)),
                 category = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CATEGORY)),
                 imageUri = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_IMAGE_URI))
             )
@@ -121,7 +129,7 @@ class LostFoundDatabaseHelper(context: Context) :
 
     companion object {
         const val DATABASE_NAME = "lost_found.db"
-        const val DATABASE_VERSION = 2
+        const val DATABASE_VERSION = 3
 
         const val TABLE_ITEMS = "items"
         const val COLUMN_ID = "id"
@@ -131,6 +139,8 @@ class LostFoundDatabaseHelper(context: Context) :
         const val COLUMN_DESCRIPTION = "description"
         const val COLUMN_CREATED_AT = "created_at"
         const val COLUMN_LOCATION = "location"
+        const val COLUMN_LATITUDE = "latitude"
+        const val COLUMN_LONGITUDE = "longitude"
         const val COLUMN_CATEGORY = "category"
         const val COLUMN_IMAGE_URI = "image_uri"
 
@@ -143,6 +153,8 @@ class LostFoundDatabaseHelper(context: Context) :
                 $COLUMN_DESCRIPTION TEXT NOT NULL,
                 $COLUMN_CREATED_AT INTEGER NOT NULL,
                 $COLUMN_LOCATION TEXT NOT NULL,
+                $COLUMN_LATITUDE REAL NOT NULL,
+                $COLUMN_LONGITUDE REAL NOT NULL,
                 $COLUMN_CATEGORY TEXT NOT NULL,
                 $COLUMN_IMAGE_URI TEXT NOT NULL
             )

@@ -53,6 +53,8 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
     var phone by rememberSaveable { mutableStateOf("") }
     var description by rememberSaveable { mutableStateOf("") }
     var location by rememberSaveable { mutableStateOf("") }
+    var latitude by rememberSaveable { mutableStateOf("") }
+    var longitude by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableStateOf(categories.first()) }
     var imageUri by rememberSaveable { mutableStateOf("") }
     var categoryExpanded by remember { mutableStateOf(false) }
@@ -77,7 +79,9 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
         OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Item name*") }, isError = showErrors && name.isBlank(), modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone number*") }, isError = showErrors && phone.isBlank(), modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description*") }, isError = showErrors && description.isBlank(), modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location*") }, isError = showErrors && location.isBlank(), modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location name/address*") }, isError = showErrors && location.isBlank(), modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = latitude, onValueChange = { latitude = it }, label = { Text("Latitude*") }, isError = showErrors && latitude.toDoubleOrNull() == null, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = longitude, onValueChange = { longitude = it }, label = { Text("Longitude*") }, isError = showErrors && longitude.toDoubleOrNull() == null, modifier = Modifier.fillMaxWidth())
 
         ExposedDropdownMenuBox(expanded = categoryExpanded, onExpandedChange = { categoryExpanded = !categoryExpanded }) {
             OutlinedTextField(value = category, onValueChange = {}, readOnly = true, label = { Text("Category") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) }, modifier = Modifier.menuAnchor().fillMaxWidth())
@@ -104,11 +108,13 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
 
         Button(onClick = {
             showErrors = true
-            val hasErrors = name.isBlank() || phone.isBlank() || description.isBlank() || location.isBlank()
+            val parsedLatitude = latitude.toDoubleOrNull()
+            val parsedLongitude = longitude.toDoubleOrNull()
+            val hasErrors = name.isBlank() || phone.isBlank() || description.isBlank() || location.isBlank() || parsedLatitude == null || parsedLongitude == null
             if (hasErrors) {
                 Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT).show()
             } else {
-                databaseHelper.insertItem(LostFoundItem(type = type, name = name, phone = phone, description = description, createdAtMillis = System.currentTimeMillis(), location = location, category = category, imageUri = imageUri))
+                databaseHelper.insertItem(LostFoundItem(type = type, name = name, phone = phone, description = description, createdAtMillis = System.currentTimeMillis(), location = location, latitude = parsedLatitude!!, longitude = parsedLongitude!!, category = category, imageUri = imageUri))
                 Toast.makeText(context, "Post saved", Toast.LENGTH_SHORT).show()
                 onPostSaved()
             }
