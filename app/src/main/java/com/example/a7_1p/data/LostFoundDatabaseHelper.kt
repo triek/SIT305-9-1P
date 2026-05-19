@@ -13,8 +13,10 @@ class LostFoundDatabaseHelper(context: Context) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_ITEMS")
-        onCreate(db)
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE $TABLE_ITEMS ADD COLUMN $COLUMN_LATITUDE REAL NOT NULL DEFAULT 0.0")
+            db.execSQL("ALTER TABLE $TABLE_ITEMS ADD COLUMN $COLUMN_LONGITUDE REAL NOT NULL DEFAULT 0.0")
+        }
     }
 
     fun insertItem(item: LostFoundItem): Long {
