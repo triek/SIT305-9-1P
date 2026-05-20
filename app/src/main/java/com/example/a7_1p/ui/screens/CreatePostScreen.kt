@@ -1,5 +1,7 @@
 package com.example.a7_1p.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.ImageView
 import android.widget.Toast
@@ -36,9 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.a7_1p.R
+import androidx.core.content.ContextCompat
 import com.example.a7_1p.data.LostFoundDatabaseHelper
 import com.example.a7_1p.data.LostFoundItem
+import com.google.android.gms.location.LocationServices
 
 private val categories = listOf("Electronics", "Pets", "Wallets", "Keys", "Other")
 
@@ -47,6 +50,7 @@ private val categories = listOf("Electronics", "Pets", "Wallets", "Keys", "Other
 fun CreatePostScreen(onPostSaved: () -> Unit) {
     val context = LocalContext.current
     val databaseHelper = remember { LostFoundDatabaseHelper(context) }
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
     var type by rememberSaveable { mutableStateOf("Lost") }
     var name by rememberSaveable { mutableStateOf("") }
@@ -55,10 +59,54 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
     var location by rememberSaveable { mutableStateOf("") }
     var latitude by rememberSaveable { mutableStateOf("") }
     var longitude by rememberSaveable { mutableStateOf("") }
+    var selectedLatitude by rememberSaveable { mutableStateOf<Double?>(null) }
+    var selectedLongitude by rememberSaveable { mutableStateOf<Double?>(null) }
     var category by rememberSaveable { mutableStateOf(categories.first()) }
     var imageUri by rememberSaveable { mutableStateOf("") }
     var categoryExpanded by remember { mutableStateOf(false) }
     var showErrors by rememberSaveable { mutableStateOf(false) }
+
+    fun hasLocationPermission(): Boolean {
+        val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        return fineGranted || coarseGranted
+    }
+
+    fun fetchCurrentLocation() {
+        if (!hasLocationPermission()) {
+            Toast.makeText(context, "Location permission denied", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { currentLocation ->
+                if (currentLocation != null) {
+                    selectedLatitude = currentLocation.latitude
+                    selectedLongitude = currentLocation.longitude
+                    latitude = currentLocation.latitude.toString()
+                    longitude = currentLocation.longitude.toString()
+                    location = "Current Location"
+                } else {
+                    Toast.makeText(context, "Unable to retrieve current location", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Unable to retrieve current location", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+        if (granted) {
+            fetchCurrentLocation()
+        } else {
+            Toast.makeText(context, "Location permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     val pickMediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         imageUri = uri?.toString().orEmpty()
@@ -80,6 +128,23 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
         OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone number*") }, isError = showErrors && phone.isBlank(), modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description*") }, isError = showErrors && description.isBlank(), modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location name/address*") }, isError = showErrors && location.isBlank(), modifier = Modifier.fillMaxWidth())
+        OutlinedButton(
+            onClick = {
+                if (hasLocationPermission()) {
+                    fetchCurrentLocation()
+                } else {
+                    locationPermissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("GET CURRENT LOCATION")
+        }
         OutlinedTextField(value = latitude, onValueChange = { latitude = it }, label = { Text("Latitude*") }, isError = showErrors && latitude.toDoubleOrNull() == null, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = longitude, onValueChange = { longitude = it }, label = { Text("Longitude*") }, isError = showErrors && longitude.toDoubleOrNull() == null, modifier = Modifier.fillMaxWidth())
 
@@ -108,13 +173,13 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
 
         Button(onClick = {
             showErrors = true
-            val parsedLatitude = latitude.toDoubleOrNull()
-            val parsedLongitude = longitude.toDoubleOrNull()
+            val parsedLatitude = selectedLatitude ?: latitude.toDoubleOrNull()
+            val parsedLongitude = selectedLongitude ?: longitude.toDoubleOrNull()
             val hasErrors = name.isBlank() || phone.isBlank() || description.isBlank() || location.isBlank() || parsedLatitude == null || parsedLongitude == null
             if (hasErrors) {
                 Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT).show()
             } else {
-                databaseHelper.insertItem(LostFoundItem(type = type, name = name, phone = phone, description = description, createdAtMillis = System.currentTimeMillis(), location = location, latitude = parsedLatitude!!, longitude = parsedLongitude!!, category = category, imageUri = imageUri))
+                databaseHelper.insertItem(LostFoundItem(type = type, name = name, phone = phone, description = description, createdAtMillis = System.currentTimeMillis(), location = location, latitude = parsedLatitude, longitude = parsedLongitude, category = category, imageUri = imageUri))
                 Toast.makeText(context, "Post saved", Toast.LENGTH_SHORT).show()
                 onPostSaved()
             }
