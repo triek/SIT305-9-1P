@@ -66,6 +66,8 @@ fun ListingScreen(
     var selectedRadiusKm by remember { mutableStateOf(1) }
     var activeRadiusMeters by remember { mutableStateOf<Int?>(null) }
     var userLocation by remember { mutableStateOf<Location?>(null) }
+    var nextSingleLostIndex by remember { mutableStateOf(0) }
+    var nextSingleFoundIndex by remember { mutableStateOf(0) }
 
     val radiusOptionsKm = listOf(1, 2, 5, 10)
 
@@ -141,6 +143,7 @@ fun ListingScreen(
         Button(onClick = onCreatePostClick) { Text("Create a post") }
         Button(onClick = onShowOnMapClick) { Text("SHOW ON MAP") }
 
+
         if (controlsExpanded) {
             OutlinedTextField(
                 value = searchQuery,
@@ -149,6 +152,76 @@ fun ListingScreen(
                 placeholder = { Text("Name, description, or location") },
                 modifier = Modifier.fillMaxWidth()
             )
+
+
+            var testDataExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = testDataExpanded,
+                onExpandedChange = { testDataExpanded = !testDataExpanded }
+            ) {
+                OutlinedTextField(
+                    value = "Test data actions",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Test items") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = testDataExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = testDataExpanded,
+                    onDismissRequest = { testDataExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Add 1 lost item") },
+                        onClick = {
+                            val item = singleLostTestItems[nextSingleLostIndex]
+                            databaseHelper.insertItem(item)
+                            nextSingleLostIndex = (nextSingleLostIndex + 1) % singleLostTestItems.size
+                            refreshItems()
+                            testDataExpanded = false
+                            Toast.makeText(context, "Added 1 lost item", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Add 1 found item") },
+                        onClick = {
+                            val item = singleFoundTestItems[nextSingleFoundIndex]
+                            databaseHelper.insertItem(item)
+                            nextSingleFoundIndex = (nextSingleFoundIndex + 1) % singleFoundTestItems.size
+                            refreshItems()
+                            testDataExpanded = false
+                            Toast.makeText(context, "Added 1 found item", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Add 3 lost items") },
+                        onClick = {
+                            databaseHelper.insertItems(multiLostTestItems)
+                            refreshItems()
+                            testDataExpanded = false
+                            Toast.makeText(context, "Added 3 lost items", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Add 3 found items") },
+                        onClick = {
+                            databaseHelper.insertItems(multiFoundTestItems)
+                            refreshItems()
+                            testDataExpanded = false
+                            Toast.makeText(context, "Added 3 found items", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Clear all items") },
+                        onClick = {
+                            val deletedCount = databaseHelper.clearAllItems()
+                            refreshItems()
+                            testDataExpanded = false
+                            Toast.makeText(context, "Cleared $deletedCount items", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+            }
 
             ExposedDropdownMenuBox(
                 expanded = categoryExpanded,
@@ -304,4 +377,52 @@ private fun LostFoundItem.hasValidCoordinates(): Boolean {
     val inRange = latitude in -90.0..90.0 && longitude in -180.0..180.0
     val notDefaultZero = latitude != 0.0 || longitude != 0.0
     return inRange && notDefaultZero
+}
+
+
+private val singleLostTestItems = listOf(
+    buildTestItem(type = "Lost", name = "Alex's Black Wallet (close)", category = "Documents", distanceBand = "close"),
+    buildTestItem(type = "Lost", name = "Noah's Blue Backpack (mid)", category = "Accessories", distanceBand = "mid"),
+    buildTestItem(type = "Lost", name = "Liam's White AirPods Case (far)", category = "Electronics", distanceBand = "far")
+)
+
+private val singleFoundTestItems = listOf(
+    buildTestItem(type = "Found", name = "Emma's Silver Keys (close)", category = "Keys", distanceBand = "close"),
+    buildTestItem(type = "Found", name = "Sophia's Student ID Card (mid)", category = "Documents", distanceBand = "mid"),
+    buildTestItem(type = "Found", name = "Olivia's Red Umbrella (far)", category = "Accessories", distanceBand = "far")
+)
+
+private val multiLostTestItems = listOf(
+    buildTestItem(type = "Lost", name = "Mason's Green Water Bottle (close)", category = "Accessories", distanceBand = "close"),
+    buildTestItem(type = "Lost", name = "Ethan's Grey Laptop Sleeve (mid)", category = "Electronics", distanceBand = "mid"),
+    buildTestItem(type = "Lost", name = "Lucas's Brown Notebook (far)", category = "Documents", distanceBand = "far")
+)
+
+private val multiFoundTestItems = listOf(
+    buildTestItem(type = "Found", name = "Ava's Pink Scarf (close)", category = "Accessories", distanceBand = "close"),
+    buildTestItem(type = "Found", name = "Mia's Black Glasses Case (mid)", category = "Accessories", distanceBand = "mid"),
+    buildTestItem(type = "Found", name = "Charlotte's USB Drive (far)", category = "Electronics", distanceBand = "far")
+)
+
+private fun buildTestItem(type: String, name: String, category: String, distanceBand: String): LostFoundItem {
+    val baseLat = -37.8136
+    val baseLon = 144.9631
+    val offset = when (distanceBand) {
+        "close" -> 0.001
+        "mid" -> 0.012
+        else -> 0.045
+    }
+
+    return LostFoundItem(
+        type = type,
+        name = name,
+        phone = "0400123456",
+        description = "Test item for UI feature verification.",
+        createdAtMillis = System.currentTimeMillis(),
+        location = "Melbourne CBD",
+        latitude = baseLat + offset,
+        longitude = baseLon + offset,
+        category = category,
+        imageUri = ""
+    )
 }
