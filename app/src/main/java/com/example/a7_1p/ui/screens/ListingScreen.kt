@@ -1,6 +1,10 @@
 package com.example.a7_1p.ui.screens
 
-import com.example.a7_1p.BuildConfig
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import android.location.Location
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -37,6 +42,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.a7_1p.R
 import com.example.a7_1p.data.LostFoundDatabaseHelper
 import com.example.a7_1p.data.LostFoundItem
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,79 +55,19 @@ fun ListingScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val databaseHelper = remember { LostFoundDatabaseHelper(context) }
-    val items = remember { mutableStateListOf<com.example.a7_1p.data.LostFoundItem>() }
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    val items = remember { mutableStateListOf<LostFoundItem>() }
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
     var categoryExpanded by remember { mutableStateOf(false) }
     var controlsExpanded by remember { mutableStateOf(false) }
+    var radiusExpanded by remember { mutableStateOf(false) }
+    var selectedRadiusKm by remember { mutableStateOf(1) }
+    var activeRadiusMeters by remember { mutableStateOf<Int?>(null) }
+    var userLocation by remember { mutableStateOf<Location?>(null) }
 
-    val sampleImageUri = "android.resource://${context.packageName}/${R.drawable.ic_launcher_foreground}"
-
-    val quickLostItem = LostFoundItem(
-        type = "Lost",
-        name = "Black Wallet",
-        phone = "0400000001",
-        description = "Lost near library with student card inside.",
-        createdAtMillis = System.currentTimeMillis(),
-        location = "Campus Library",
-        latitude = -37.8401,
-        longitude = 144.9467,
-        category = "Wallets",
-        imageUri = sampleImageUri
-    )
-
-    val quickFoundItem = LostFoundItem(
-        type = "Found",
-        name = "Silver Keys",
-        phone = "0400000002",
-        description = "Found set of two keys at cafeteria counter.",
-        createdAtMillis = System.currentTimeMillis() - 60_000,
-        location = "Campus Cafeteria",
-        latitude = -37.8410,
-        longitude = 144.9451,
-        category = "Keys",
-        imageUri = "placeholder-image-path"
-    )
-
-    val quickBulkItems = listOf(
-        LostFoundItem(
-            type = "Lost",
-            name = "Grey Backpack",
-            phone = "0400000003",
-            description = "Contains notebooks and a charger.",
-            createdAtMillis = System.currentTimeMillis() - 2 * 60_000,
-            location = "Engineering Building",
-            latitude = -37.8425,
-            longitude = 144.9443,
-            category = "Other",
-            imageUri = sampleImageUri
-        ),
-        LostFoundItem(
-            type = "Found",
-            name = "Bluetooth Earbuds",
-            phone = "0400000004",
-            description = "Found in lecture hall row C.",
-            createdAtMillis = System.currentTimeMillis() - 3 * 60_000,
-            location = "Lecture Hall 2",
-            latitude = -37.8432,
-            longitude = 144.9472,
-            category = "Electronics",
-            imageUri = ""
-        ),
-        LostFoundItem(
-            type = "Lost",
-            name = "Brown Dog",
-            phone = "0400000005",
-            description = "Small brown dog with red collar.",
-            createdAtMillis = System.currentTimeMillis() - 4 * 60_000,
-            location = "North Car Park",
-            latitude = -37.8388,
-            longitude = 144.9480,
-            category = "Pets",
-            imageUri = sampleImageUri
-        )
-    )
+    val radiusOptionsKm = listOf(1, 2, 5, 10)
 
     val categoryOptions by remember {
         derivedStateOf {
@@ -137,7 +84,22 @@ fun ListingScreen(
                     item.name.contains(query, ignoreCase = true) ||
                     item.description.contains(query, ignoreCase = true) ||
                     item.location.contains(query, ignoreCase = true)
-                categoryMatch && queryMatch
+
+                val radiusMatch = if (activeRadiusMeters != null && userLocation != null && item.hasValidCoordinates()) {
+                    val distanceResults = FloatArray(1)
+                    Location.distanceBetween(
+                        userLocation!!.latitude,
+                        userLocation!!.longitude,
+                        item.latitude,
+                        item.longitude,
+                        distanceResults
+                    )
+                    distanceResults[0] <= activeRadiusMeters!!
+                } else {
+                    activeRadiusMeters == null
+                }
+
+                categoryMatch && queryMatch && radiusMatch
             }
         }
     }
@@ -176,43 +138,8 @@ fun ListingScreen(
                 Text("☰")
             }
         }
-        Button(onClick = onCreatePostClick) {
-            Text("Create a post")
-        }
-
-        Button(onClick = onShowOnMapClick) {
-            Text("SHOW ON MAP")
-        }
-
-        if (controlsExpanded && BuildConfig.DEBUG) {
-            Button(onClick = {
-                databaseHelper.insertItem(quickLostItem)
-                refreshItems()
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text("Quick Add Lost Item")
-            }
-
-            Button(onClick = {
-                databaseHelper.insertItem(quickFoundItem)
-                refreshItems()
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text("Quick Add Found Item")
-            }
-
-            Button(onClick = {
-                databaseHelper.insertItems(quickBulkItems)
-                refreshItems()
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text("Quick Add Multiple Items")
-            }
-
-            Button(onClick = {
-                databaseHelper.clearAllItems()
-                refreshItems()
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text("Clear Test Data")
-            }
-        }
+        Button(onClick = onCreatePostClick) { Text("Create a post") }
+        Button(onClick = onShowOnMapClick) { Text("SHOW ON MAP") }
 
         if (controlsExpanded) {
             OutlinedTextField(
@@ -227,54 +154,110 @@ fun ListingScreen(
                 expanded = categoryExpanded,
                 onExpandedChange = { categoryExpanded = !categoryExpanded }
             ) {
-            OutlinedTextField(
-                value = selectedCategory,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Filter by category") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
-            )
-            ExposedDropdownMenu(
-                expanded = categoryExpanded,
-                onDismissRequest = { categoryExpanded = false }
-            ) {
-                categoryOptions.forEach { category ->
-                    DropdownMenuItem(
-                        text = { Text(category) },
-                        onClick = {
-                            selectedCategory = category
-                            categoryExpanded = false
-                        }
-                    )
+                OutlinedTextField(
+                    value = selectedCategory,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Filter by category") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = categoryExpanded,
+                    onDismissRequest = { categoryExpanded = false }
+                ) {
+                    categoryOptions.forEach { category ->
+                        DropdownMenuItem(
+                            text = { Text(category) },
+                            onClick = {
+                                selectedCategory = category
+                                categoryExpanded = false
+                            }
+                        )
+                    }
                 }
             }
-        }
+
+            ExposedDropdownMenuBox(
+                expanded = radiusExpanded,
+                onExpandedChange = { radiusExpanded = !radiusExpanded }
+            ) {
+                OutlinedTextField(
+                    value = "$selectedRadiusKm km",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Radius") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = radiusExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = radiusExpanded,
+                    onDismissRequest = { radiusExpanded = false }
+                ) {
+                    radiusOptionsKm.forEach { radiusKm ->
+                        DropdownMenuItem(
+                            text = { Text("$radiusKm km") },
+                            onClick = {
+                                selectedRadiusKm = radiusKm
+                                radiusExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Button(
+                onClick = {
+                    getCurrentLocation(
+                        onLocationFound = { location ->
+                            userLocation = location
+                            activeRadiusMeters = selectedRadiusKm * 1_000
+                            if (filteredItems.isEmpty()) {
+                                Toast.makeText(context, "No nearby items found.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onError = { message ->
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        },
+                        fusedLocationClient = fusedLocationClient,
+                        context = context
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("SEARCH NEARBY") }
+
+            Button(
+                onClick = {
+                    activeRadiusMeters = null
+                    userLocation = null
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("CLEAR RADIUS FILTER") }
 
             Button(
                 onClick = {
                     searchQuery = ""
                     selectedCategory = "All"
+                    activeRadiusMeters = null
+                    userLocation = null
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Clear filters")
-            }
+            ) { Text("Clear filters") }
         }
 
         if (filteredItems.isEmpty()) {
             Text(
-                text = "No results found. Try a different search or clear filters.",
+                text = if (activeRadiusMeters != null) {
+                    "No nearby items found in the selected radius."
+                } else {
+                    "No results found. Try a different search or clear filters."
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(top = 16.dp)
             )
         } else {
             AndroidView(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 4.dp),
+                modifier = Modifier.fillMaxSize().padding(top = 4.dp),
                 factory = { ctx ->
                     RecyclerView(ctx).apply {
                         layoutManager = LinearLayoutManager(ctx)
@@ -287,4 +270,38 @@ fun ListingScreen(
             )
         }
     }
+}
+
+@SuppressLint("MissingPermission")
+private fun getCurrentLocation(
+    onLocationFound: (Location) -> Unit,
+    onError: (String) -> Unit,
+    fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient,
+    context: android.content.Context
+) {
+    val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    if (!hasFine && !hasCoarse) {
+        onError("Location permission is required for nearby search.")
+        return
+    }
+
+    fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+        .addOnSuccessListener { location ->
+            if (location != null) {
+                onLocationFound(location)
+            } else {
+                onError("Could not get your location.")
+            }
+        }
+        .addOnFailureListener {
+            onError("Unable to fetch current location.")
+        }
+}
+
+private fun LostFoundItem.hasValidCoordinates(): Boolean {
+    val inRange = latitude in -90.0..90.0 && longitude in -180.0..180.0
+    val notDefaultZero = latitude != 0.0 || longitude != 0.0
+    return inRange && notDefaultZero
 }
