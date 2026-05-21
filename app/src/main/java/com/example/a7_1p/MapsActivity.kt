@@ -7,6 +7,7 @@ import android.location.Location
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.a7_1p.data.LostFoundDatabaseHelper
@@ -29,6 +30,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient
     private var googleMap: GoogleMap? = null
     private var radiusOptionsKm = listOf(1, 2, 5, 10)
+
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+        if (hasLocationPermission) {
+            fetchNearbyOnMap()
+        } else {
+            Toast.makeText(this, "Location permission is required for map radius filter.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,58 +91,81 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(firstPosition, 14f))
     }
 
-    @SuppressLint("MissingPermission")
     private fun filterNearbyOnMap() {
-        val map = googleMap ?: return
         val hasFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val hasCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
-        if (!hasFine && !hasCoarse) {
-            Toast.makeText(this, "Location permission is required for map radius filter.", Toast.LENGTH_SHORT).show()
-            return
+        if (hasFine || hasCoarse) {
+            fetchNearbyOnMap()
+        } else {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
         }
+    }
 
+    @SuppressLint("MissingPermission")
+    private fun fetchNearbyOnMap() {
+        val map = googleMap ?: return
         val selectedRadiusMeters = radiusOptionsKm[binding.radiusSpinner.selectedItemPosition] * 1_000
-        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
             .addOnSuccessListener { userLocation ->
-                if (userLocation == null) {
-                    Toast.makeText(this, "Could not get your location.", Toast.LENGTH_SHORT).show()
+                if (userLocation != null) {
+                    renderNearbyItems(map, userLocation, selectedRadiusMeters)
                     return@addOnSuccessListener
                 }
 
-                val nearbyItems = databaseHelper.getAllItems()
-                    .filter { it.hasValidCoordinates() }
-                    .filter { item ->
-                        val results = FloatArray(1)
-                        Location.distanceBetween(
-                            userLocation.latitude,
-                            userLocation.longitude,
-                            item.latitude,
-                            item.longitude,
-                            results
-                        )
-                        results[0] <= selectedRadiusMeters
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { lastLocation ->
+                        if (lastLocation != null) {
+                            renderNearbyItems(map, lastLocation, selectedRadiusMeters)
+                        } else {
+                            Toast.makeText(this, "Could not get your location. Check emulator location settings.", Toast.LENGTH_SHORT).show()
+                        }
                     }
-
-                map.clear()
-                val userLatLng = LatLng(userLocation.latitude, userLocation.longitude)
-                map.addMarker(
-                    MarkerOptions()
-                        .position(userLatLng)
-                        .title("You are here")
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                )
-
-                nearbyItems.forEach { addItemMarker(map, it) }
-                map.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 14f))
-
-                if (nearbyItems.isEmpty()) {
-                    Toast.makeText(this, "No nearby items found.", Toast.LENGTH_SHORT).show()
-                }
+                    .addOnFailureListener {
+                        Toast.makeText(this, "Unable to fetch current location.", Toast.LENGTH_SHORT).show()
+                    }
             }
             .addOnFailureListener {
                 Toast.makeText(this, "Unable to fetch current location.", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun renderNearbyItems(map: GoogleMap, userLocation: Location, selectedRadiusMeters: Int) {
+        val nearbyItems = databaseHelper.getAllItems()
+            .filter { it.hasValidCoordinates() }
+            .filter { item ->
+                val results = FloatArray(1)
+                Location.distanceBetween(
+                    userLocation.latitude,
+                    userLocation.longitude,
+                    item.latitude,
+                    item.longitude,
+                    results
+                )
+                results[0] <= selectedRadiusMeters
+            }
+
+        map.clear()
+        val userLatLng = LatLng(userLocation.latitude, userLocation.longitude)
+        map.addMarker(
+            MarkerOptions()
+                .position(userLatLng)
+                .title("You are here")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+        )
+
+        nearbyItems.forEach { addItemMarker(map, it) }
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 14f))
+
+        if (nearbyItems.isEmpty()) {
+            Toast.makeText(this, "No nearby items found.", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun addItemMarker(map: GoogleMap, item: LostFoundItem) {
