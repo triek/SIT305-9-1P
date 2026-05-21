@@ -29,7 +29,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var databaseHelper: LostFoundDatabaseHelper
     private lateinit var fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient
     private var googleMap: GoogleMap? = null
-    private var radiusOptionsKm = listOf(1, 2, 5, 10)
+    private var radiusOptionsKm = listOf<Int?>(null, 1, 2, 5, 10)
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -38,7 +38,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
 
         if (hasLocationPermission) {
-            fetchNearbyOnMap()
+            applySelectedRadiusFilter()
         } else {
             Toast.makeText(this, "Location permission is required for map radius filter.", Toast.LENGTH_SHORT).show()
         }
@@ -56,15 +56,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         binding.radiusSpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
-            radiusOptionsKm.map { "$it km" }
+            radiusOptionsKm.map { it?.let { km -> "$km km" } ?: "Unlimited" }
         )
 
-        binding.showNearbyButton.setOnClickListener {
-            filterNearbyOnMap()
-        }
+        binding.radiusSpinner.setSelection(0, false)
+        binding.radiusSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                applySelectedRadiusFilter()
+            }
 
-        binding.clearMapFilterButton.setOnClickListener {
-            reloadAllItemMarkers()
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
         }
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
@@ -91,7 +92,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(firstPosition, 14f))
     }
 
-    private fun filterNearbyOnMap() {
+    private fun applySelectedRadiusFilter() {
+        if (radiusOptionsKm[binding.radiusSpinner.selectedItemPosition] == null) {
+            reloadAllItemMarkers()
+            return
+        }
+
         val hasFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val hasCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
@@ -110,7 +116,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     @SuppressLint("MissingPermission")
     private fun fetchNearbyOnMap() {
         val map = googleMap ?: return
-        val selectedRadiusMeters = radiusOptionsKm[binding.radiusSpinner.selectedItemPosition] * 1_000
+        val selectedRadiusMeters = (radiusOptionsKm[binding.radiusSpinner.selectedItemPosition] ?: return) * 1_000
 
         fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
             .addOnSuccessListener { userLocation ->

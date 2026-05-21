@@ -14,25 +14,14 @@
         android:layout_height="wrap_content"
         android:layout_gravity="top"
         android:orientation="vertical"
-        android:padding="12dp"
-        android:background="#B3000000">
+        android:padding="12dp">
 
         <Spinner
             android:id="@+id/radiusSpinner"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <Button
-            android:id="@+id/showNearbyButton"
-            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="SHOW NEARBY ON MAP" />
-
-        <Button
-            android:id="@+id/clearMapFilterButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="CLEAR MAP FILTER" />
+            android:background="@drawable/radius_dropdown_background"
+            android:popupBackground="#FFFFFFFF" />
     </LinearLayout>
 
 </FrameLayout>

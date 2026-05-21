@@ -68,13 +68,13 @@ fun ListingScreen(
     var categoryExpanded by remember { mutableStateOf(false) }
     var controlsExpanded by remember { mutableStateOf(false) }
     var radiusExpanded by remember { mutableStateOf(false) }
-    var selectedRadiusKm by remember { mutableStateOf(1) }
+    var selectedRadiusKm by remember { mutableStateOf<Int?>(null) }
     var activeRadiusMeters by remember { mutableStateOf<Int?>(null) }
     var userLocation by remember { mutableStateOf<Location?>(null) }
     var nextSingleLostIndex by remember { mutableStateOf(0) }
     var nextSingleFoundIndex by remember { mutableStateOf(0) }
 
-    val radiusOptionsKm = listOf(1, 2, 5, 10)
+    val radiusOptionsKm = listOf<Int?>(null, 1, 2, 5, 10)
 
     val categoryOptions by remember {
         derivedStateOf {
@@ -271,7 +271,7 @@ fun ListingScreen(
                 onExpandedChange = { radiusExpanded = !radiusExpanded }
             ) {
                 OutlinedTextField(
-                    value = "$selectedRadiusKm km",
+                    value = selectedRadiusKm?.let { "$it km" } ?: "Unlimited",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Radius") },
@@ -284,10 +284,30 @@ fun ListingScreen(
                 ) {
                     radiusOptionsKm.forEach { radiusKm ->
                         DropdownMenuItem(
-                            text = { Text("$radiusKm km") },
+                            text = { Text(radiusKm?.let { "$it km" } ?: "Unlimited") },
                             onClick = {
                                 selectedRadiusKm = radiusKm
                                 radiusExpanded = false
+
+                                if (radiusKm == null) {
+                                    activeRadiusMeters = null
+                                    userLocation = null
+                                } else {
+                                    getCurrentLocation(
+                                        onLocationFound = { location ->
+                                            userLocation = location
+                                            activeRadiusMeters = radiusKm * 1_000
+                                            if (filteredItems.isEmpty()) {
+                                                Toast.makeText(context, "No nearby items found.", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        onError = { message ->
+                                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                        },
+                                        fusedLocationClient = fusedLocationClient,
+                                        context = context
+                                    )
+                                }
                             }
                         )
                     }
@@ -296,40 +316,9 @@ fun ListingScreen(
 
             Button(
                 onClick = {
-                    getCurrentLocation(
-                        onLocationFound = { location ->
-                            userLocation = location
-                            activeRadiusMeters = selectedRadiusKm * 1_000
-                            if (filteredItems.isEmpty()) {
-                                Toast.makeText(context, "No nearby items found.", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        onError = { message ->
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                        },
-                        fusedLocationClient = fusedLocationClient,
-                        context = context
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = listingButtonBackground, contentColor = Color.Black),
-                border = BorderStroke(1.dp, Color.Black)
-            ) { Text("SEARCH NEARBY") }
-
-            Button(
-                onClick = {
-                    activeRadiusMeters = null
-                    userLocation = null
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = listingButtonBackground, contentColor = Color.Black),
-                border = BorderStroke(1.dp, Color.Black)
-            ) { Text("CLEAR RADIUS FILTER") }
-
-            Button(
-                onClick = {
                     searchQuery = ""
                     selectedCategory = "All"
+                    selectedRadiusKm = null
                     activeRadiusMeters = null
                     userLocation = null
                 },
