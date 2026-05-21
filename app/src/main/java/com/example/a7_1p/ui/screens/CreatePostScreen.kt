@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -36,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -44,6 +47,7 @@ import com.example.a7_1p.data.LostFoundItem
 import com.google.android.gms.location.LocationServices
 
 private val categories = listOf("Electronics", "Pets", "Wallets", "Keys", "Other")
+private val buttonBackground = Color(0xFFBDBDBD)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,7 +117,10 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(start = 20.dp, end = 20.dp, top = 36.dp, bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Create Lost/Found Post", style = MaterialTheme.typography.headlineSmall)
@@ -141,7 +148,9 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
                     )
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(containerColor = buttonBackground, contentColor = Color.Black),
+            border = BorderStroke(1.dp, Color.Black)
         ) {
             Text("GET CURRENT LOCATION")
         }
@@ -159,7 +168,11 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
 
         OutlinedButton(onClick = {
             pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-        }, modifier = Modifier.fillMaxWidth()) {
+        },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(containerColor = buttonBackground, contentColor = Color.Black),
+            border = BorderStroke(1.dp, Color.Black)
+        ) {
             Text(if (imageUri.isBlank()) "Pick an image" else "Change image")
         }
 
@@ -183,6 +196,10 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
                 Toast.makeText(context, "Post saved", Toast.LENGTH_SHORT).show()
                 onPostSaved()
             }
-        }, modifier = Modifier.fillMaxWidth()) { Text("Save") }
+        },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = buttonBackground, contentColor = Color.Black),
+            border = BorderStroke(1.dp, Color.Black)
+        ) { Text("Save") }
     }
 }

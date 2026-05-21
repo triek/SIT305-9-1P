@@ -140,8 +140,14 @@ fun ListingScreen(
                 Text("☰")
             }
         }
-        Button(onClick = onCreatePostClick) { Text("Create a post") }
-        Button(onClick = onShowOnMapClick) { Text("SHOW ON MAP") }
+        Button(
+            onClick = onCreatePostClick,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("CREATE A NEW ADVERT") }
+
+        Button(onClick = onShowOnMapClick,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("SHOW ON MAP") }
 
 
         if (controlsExpanded) {
