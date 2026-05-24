@@ -1,6 +1,7 @@
 package com.example.a7_1p.ui.screens
 
 import android.net.Uri
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +15,9 @@ import com.example.a7_1p.data.LostFoundItem
 class LostFoundAdapter(
     private val onItemClick: (LostFoundItem) -> Unit
 ) : RecyclerView.Adapter<LostFoundAdapter.ItemViewHolder>() {
+    companion object {
+        private const val TAG = "LostFoundAdapter"
+    }
 
     private val items = mutableListOf<LostFoundItem>()
 
@@ -49,8 +53,15 @@ class LostFoundAdapter(
             date.text = "Posted: ${DateTimeFormatterUtil.formatForList(item.createdAtMillis)}"
 
             if (item.imageUri.isNotBlank() && item.imageUri != "selected-image-placeholder") {
-                preview.setImageURI(Uri.parse(item.imageUri))
-                if (preview.drawable == null) {
+                val loaded = try {
+                    preview.setImageURI(Uri.parse(item.imageUri))
+                    preview.drawable != null
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "Unable to open image URI: ${item.imageUri}", e)
+                    false
+                }
+
+                if (!loaded) {
                     preview.setImageResource(R.drawable.ic_launcher_foreground)
                 }
             } else {

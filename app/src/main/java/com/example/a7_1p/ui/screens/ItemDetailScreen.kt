@@ -1,6 +1,7 @@
 package com.example.a7_1p.ui.screens
 
 import android.net.Uri
+import android.util.Log
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +28,8 @@ import com.example.a7_1p.R
 import com.example.a7_1p.data.DateTimeFormatterUtil
 import com.example.a7_1p.data.LostFoundDatabaseHelper
 
+private const val TAG = "ItemDetailScreen"
+
 @Composable
 fun ItemDetailScreen(itemId: Long, onItemRemoved: () -> Unit) {
     val context = LocalContext.current
@@ -51,8 +54,14 @@ fun ItemDetailScreen(itemId: Long, onItemRemoved: () -> Unit) {
             AndroidView(
                 factory = { ctx -> ImageView(ctx).apply { scaleType = ImageView.ScaleType.CENTER_CROP } },
                 update = { imageView ->
-                    imageView.setImageURI(Uri.parse(currentItem.imageUri))
-                    if (imageView.drawable == null) imageView.setImageResource(R.drawable.ic_launcher_foreground)
+                    val loaded = try {
+                        imageView.setImageURI(Uri.parse(currentItem.imageUri))
+                        imageView.drawable != null
+                    } catch (e: SecurityException) {
+                        Log.w(TAG, "Unable to open image URI: ${currentItem.imageUri}", e)
+                        false
+                    }
+                    if (!loaded) imageView.setImageResource(R.drawable.ic_launcher_foreground)
                 },
                 modifier = Modifier.fillMaxWidth().height(240.dp)
             )

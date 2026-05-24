@@ -209,11 +209,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun addItemMarker(map: GoogleMap, item: LostFoundItem) {
         val position = LatLng(item.latitude, item.longitude)
+        val markerHue = if (item.type.equals("Found", ignoreCase = true)) {
+            BitmapDescriptorFactory.HUE_GREEN
+        } else {
+            BitmapDescriptorFactory.HUE_RED
+        }
         map.addMarker(
             MarkerOptions()
                 .position(position)
                 .title(item.name)
                 .snippet("${item.type} • ${item.category}")
+                .icon(BitmapDescriptorFactory.defaultMarker(markerHue))
         )
     }
 

@@ -1,12 +1,12 @@
 package com.example.a7_1p.ui.screens
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -112,8 +112,21 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
         }
     }
 
-    val pickMediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
-        imageUri = uri?.toString().orEmpty()
+    val pickMediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri == null) {
+            imageUri = ""
+            return@rememberLauncherForActivityResult
+        }
+
+        try {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (_: SecurityException) {
+            // Some providers may not support persistable permissions; keep best-effort URI.
+        }
+        imageUri = uri.toString()
     }
 
     Column(
@@ -167,7 +180,7 @@ fun CreatePostScreen(onPostSaved: () -> Unit) {
         }
 
         OutlinedButton(onClick = {
-            pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            pickMediaLauncher.launch(arrayOf("image/*"))
         },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.outlinedButtonColors(containerColor = buttonBackground, contentColor = Color.Black),

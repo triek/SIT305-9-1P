@@ -420,11 +420,17 @@ private val multiFoundTestItems = listOf(
 private fun buildTestItem(type: String, name: String, category: String, distanceBand: String): LostFoundItem {
     val baseLat = -37.8473
     val baseLon = 145.1149
-    val offset = when (distanceBand) {
+    val bandRadius = when (distanceBand) {
         "near" -> 0.0015
         "mid" -> 0.012
         else -> 0.045
     }
+    val seed = name.hashCode().toUInt().toDouble()
+    val angleDegrees = seed % 360.0
+    val angleRadians = Math.toRadians(angleDegrees)
+    val distanceScale = 0.65 + ((seed / 360.0) % 0.35)
+    val offsetLat = kotlin.math.sin(angleRadians) * bandRadius * distanceScale
+    val offsetLon = kotlin.math.cos(angleRadians) * bandRadius * distanceScale
 
     return LostFoundItem(
         type = type,
@@ -433,8 +439,8 @@ private fun buildTestItem(type: String, name: String, category: String, distance
         description = "Test item for UI feature verification.",
         createdAtMillis = System.currentTimeMillis(),
         location = "Deakin University Burwood",
-        latitude = baseLat + offset,
-        longitude = baseLon + offset,
+        latitude = baseLat + offsetLat,
+        longitude = baseLon + offsetLon,
         category = category,
         imageUri = ""
     )
