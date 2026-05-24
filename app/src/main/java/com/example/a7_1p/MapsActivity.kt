@@ -88,6 +88,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         validItems.forEach { addItemMarker(map, it) }
+        addCurrentLocationMarker(map)
+
         val firstPosition = LatLng(validItems.first().latitude, validItems.first().longitude)
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(firstPosition, 14f))
     }
@@ -142,6 +144,42 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
     }
 
+
+    @SuppressLint("MissingPermission")
+    private fun addCurrentLocationMarker(map: GoogleMap) {
+        val hasFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasFine && !hasCoarse) {
+            return
+        }
+
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+            .addOnSuccessListener { currentLocation ->
+                if (currentLocation != null) {
+                    addUserMarker(map, currentLocation)
+                    return@addOnSuccessListener
+                }
+
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { lastLocation ->
+                        if (lastLocation != null) {
+                            addUserMarker(map, lastLocation)
+                        }
+                    }
+            }
+    }
+
+    private fun addUserMarker(map: GoogleMap, location: Location) {
+        val userLatLng = LatLng(location.latitude, location.longitude)
+        map.addMarker(
+            MarkerOptions()
+                .position(userLatLng)
+                .title("You are here")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+        )
+    }
+
     private fun renderNearbyItems(map: GoogleMap, userLocation: Location, selectedRadiusMeters: Int) {
         val nearbyItems = databaseHelper.getAllItems()
             .filter { it.hasValidCoordinates() }
@@ -159,12 +197,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         map.clear()
         val userLatLng = LatLng(userLocation.latitude, userLocation.longitude)
-        map.addMarker(
-            MarkerOptions()
-                .position(userLatLng)
-                .title("You are here")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-        )
+        addUserMarker(map, userLocation)
 
         nearbyItems.forEach { addItemMarker(map, it) }
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 14f))

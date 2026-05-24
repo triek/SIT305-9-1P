@@ -226,15 +226,6 @@ fun ListingScreen(
                             Toast.makeText(context, "Added 3 found items", Toast.LENGTH_SHORT).show()
                         }
                     )
-                    DropdownMenuItem(
-                        text = { Text("Clear all items") },
-                        onClick = {
-                            val deletedCount = databaseHelper.clearAllItems()
-                            refreshItems()
-                            testDataExpanded = false
-                            Toast.makeText(context, "Cleared $deletedCount items", Toast.LENGTH_SHORT).show()
-                        }
-                    )
                 }
             }
 
@@ -326,6 +317,18 @@ fun ListingScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = listingButtonBackground, contentColor = Color.Black),
                 border = BorderStroke(1.dp, Color.Black)
             ) { Text("Clear filters") }
+
+            Button(
+                onClick = {
+                    val deletedCount = databaseHelper.clearAllItems()
+                    refreshItems()
+                    testDataExpanded = false
+                    Toast.makeText(context, "Cleared $deletedCount items", Toast.LENGTH_SHORT).show()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = listingButtonBackground, contentColor = Color.Black),
+                border = BorderStroke(1.dp, Color.Black)
+            ) { Text("Clear all items") }
         }
 
         if (filteredItems.isEmpty()) {
@@ -391,34 +394,34 @@ private fun LostFoundItem.hasValidCoordinates(): Boolean {
 
 
 private val singleLostTestItems = listOf(
-    buildTestItem(type = "Lost", name = "Alex's Black Wallet (close)", category = "Documents", distanceBand = "close"),
+    buildTestItem(type = "Lost", name = "Alex's Black Wallet (near)", category = "Documents", distanceBand = "near"),
     buildTestItem(type = "Lost", name = "Noah's Blue Backpack (mid)", category = "Accessories", distanceBand = "mid"),
     buildTestItem(type = "Lost", name = "Liam's White AirPods Case (far)", category = "Electronics", distanceBand = "far")
 )
 
 private val singleFoundTestItems = listOf(
-    buildTestItem(type = "Found", name = "Emma's Silver Keys (close)", category = "Keys", distanceBand = "close"),
+    buildTestItem(type = "Found", name = "Emma's Silver Keys (near)", category = "Keys", distanceBand = "near"),
     buildTestItem(type = "Found", name = "Sophia's Student ID Card (mid)", category = "Documents", distanceBand = "mid"),
     buildTestItem(type = "Found", name = "Olivia's Red Umbrella (far)", category = "Accessories", distanceBand = "far")
 )
 
 private val multiLostTestItems = listOf(
-    buildTestItem(type = "Lost", name = "Mason's Green Water Bottle (close)", category = "Accessories", distanceBand = "close"),
+    buildTestItem(type = "Lost", name = "Mason's Green Water Bottle (near)", category = "Accessories", distanceBand = "near"),
     buildTestItem(type = "Lost", name = "Ethan's Grey Laptop Sleeve (mid)", category = "Electronics", distanceBand = "mid"),
     buildTestItem(type = "Lost", name = "Lucas's Brown Notebook (far)", category = "Documents", distanceBand = "far")
 )
 
 private val multiFoundTestItems = listOf(
-    buildTestItem(type = "Found", name = "Ava's Pink Scarf (close)", category = "Accessories", distanceBand = "close"),
+    buildTestItem(type = "Found", name = "Ava's Pink Scarf (near)", category = "Accessories", distanceBand = "near"),
     buildTestItem(type = "Found", name = "Mia's Black Glasses Case (mid)", category = "Accessories", distanceBand = "mid"),
     buildTestItem(type = "Found", name = "Charlotte's USB Drive (far)", category = "Electronics", distanceBand = "far")
 )
 
 private fun buildTestItem(type: String, name: String, category: String, distanceBand: String): LostFoundItem {
-    val baseLat = -37.8136
-    val baseLon = 144.9631
+    val baseLat = -37.8473
+    val baseLon = 145.1149
     val offset = when (distanceBand) {
-        "close" -> 0.001
+        "near" -> 0.0015
         "mid" -> 0.012
         else -> 0.045
     }
@@ -429,7 +432,7 @@ private fun buildTestItem(type: String, name: String, category: String, distance
         phone = "0400123456",
         description = "Test item for UI feature verification.",
         createdAtMillis = System.currentTimeMillis(),
-        location = "Melbourne CBD",
+        location = "Deakin University Burwood",
         latitude = baseLat + offset,
         longitude = baseLon + offset,
         category = category,
